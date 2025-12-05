@@ -9,9 +9,21 @@
 
 Um reprodutor de música moderno e intuitivo com interface inspirada no Spotify.
 
-[Recursos](#-recursos) • [Instalação](#-instalação) • [Uso](#-uso) • [Atalhos](#%EF%B8%8F-atalhos-de-teclado) • [Build](#-gerando-executável)
+[📥 Download](#-download) • [Recursos](#-recursos) • [Instalação](#-instalação) • [Uso](#-uso) • [Atalhos](#%EF%B8%8F-atalhos-de-teclado) • [Build](#-gerando-executável)
 
 </div>
+
+---
+
+## 📥 Download
+
+### Executável Windows (.exe)
+
+Baixe a versão mais recente compilada e pronta para usar:
+
+**[⬇️ Download MusicPlayer.exe](https://github.com/mareles0/player-music/releases/latest)**
+
+> 💡 **Não precisa instalar Python ou dependências!** Apenas baixe e execute.
 
 ---
 
