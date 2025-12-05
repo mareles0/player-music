@@ -1,0 +1,227 @@
+# 🎵 Music Player - Estilo Spotify
+
+<div align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Pygame](https://img.shields.io/badge/Pygame-2.5.2-00ADD8?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+
+Um reprodutor de música moderno e intuitivo com interface inspirada no Spotify.
+
+[Recursos](#-recursos) • [Instalação](#-instalação) • [Uso](#-uso) • [Atalhos](#%EF%B8%8F-atalhos-de-teclado) • [Build](#-gerando-executável)
+
+</div>
+
+---
+
+## 📸 Preview
+
+Interface elegante com tema dark, controles intuitivos e modo mini player.
+
+## ✨ Recursos
+
+### 🎧 Reprodução de Áudio
+- **Suporte a múltiplos formatos**: MP3, WAV, OGG, FLAC
+- **Controles completos**: Play, Pause, Próxima, Anterior, Stop
+- **Barra de progresso interativa**: Clique para navegar na música
+- **Exibição de tempo**: Tempo atual e duração total (MM:SS)
+- **Controle de volume**: Slider com indicador visual
+
+### 🎲 Modo Aleatório Inteligente
+- Reprodução aleatória sem repetições
+- Histórico de músicas já tocadas
+- Reinicia automaticamente após tocar todas as músicas
+- Indicador visual ativo (botão verde)
+
+### 📋 Sistema de Playlists
+- Crie e gerencie múltiplas playlists
+- Salve suas playlists favoritas
+- Carregue playlists rapidamente
+- Persistência automática em JSON
+
+### 🎹 Suporte a Teclas de Mídia
+- **Teclas do teclado/fone de ouvido**:
+  - Play/Pause, Próxima, Anterior
+  - Volume Up/Down, Mute
+- **Atalhos de teclado**: Espaço, setas, M para mute
+- Funciona mesmo com a janela em segundo plano
+
+### 🪟 Modo Mini Player
+- Interface compacta (450x280)
+- Sempre visível enquanto trabalha
+- Alterna facilmente entre os modos
+- Mantém todas as funcionalidades
+
+### 🎨 Interface Moderna
+- Design inspirado no Spotify
+- Tema dark elegante (#121212)
+- Cor de destaque verde (#1DB954)
+- Responsiva e intuitiva
+
+## 🚀 Instalação
+
+### Pré-requisitos
+- Python 3.11 ou superior
+- Windows (para suporte completo a teclas de mídia)
+
+### Passo a Passo
+
+1. **Clone o repositório**
+```bash
+git clone https://github.com/seu-usuario/music-player.git
+cd music-player
+```
+
+2. **Instale as dependências**
+```bash
+pip install -r requirements.txt
+```
+
+3. **Execute o player**
+```bash
+python main.py
+```
+
+## 📦 Dependências
+
+```
+pygame==2.5.2      # Engine de áudio
+pyinstaller==6.3.0 # Geração de executável
+mutagen==1.47.0    # Leitura de metadados de áudio
+pywin32==306       # Suporte a teclas de mídia Windows
+```
+
+## 🎮 Uso
+
+### Primeira Execução
+
+1. Clique em **"Carregar Pasta"** para selecionar uma pasta com músicas
+2. As músicas serão listadas automaticamente
+3. Clique duplo em uma música para reproduzir
+4. Use os controles na parte inferior para navegar
+
+### Criando Playlists
+
+1. Carregue uma pasta com músicas
+2. Clique em **"Salvar Playlist"**
+3. Digite um nome para a playlist
+4. Use **"Carregar Playlist"** para acessar depois
+
+### Modo Aleatório
+
+1. Clique no botão **🔀 Aleatório**
+2. As músicas serão reproduzidas em ordem aleatória
+3. Não haverá repetições até que todas sejam tocadas
+4. O histórico é salvo automaticamente
+
+### Modo Mini
+
+1. Clique em **"Mini Mode"**
+2. A janela ficará compacta
+3. Clique novamente para voltar ao modo normal
+
+## ⌨️ Atalhos de Teclado
+
+| Tecla | Ação |
+|-------|------|
+| `Espaço` | Play/Pause |
+| `→` | Próxima música |
+| `←` | Música anterior |
+| `↑` | Aumentar volume |
+| `↓` | Diminuir volume |
+| `M` | Mute/Unmute |
+
+### Teclas de Mídia (Teclado/Fone)
+
+- ⏯️ Play/Pause
+- ⏭️ Próxima
+- ⏮️ Anterior
+- 🔊 Volume Up/Down
+- 🔇 Mute
+
+## 🏗️ Estrutura do Projeto
+
+```
+music-player/
+├── assets/                    # Recursos (ícones)
+│   └── spotify.ico
+├── components/                # Componentes da interface
+│   ├── __init__.py
+│   └── player.py             # Classe principal do player
+├── utils/                     # Utilitários
+│   ├── __init__.py
+│   ├── media_keys.py         # Listener de teclas de mídia
+│   ├── music_loader.py       # Carregador de músicas
+│   └── playlist_manager.py   # Gerenciador de playlists
+├── build_exe.py              # Script de build
+├── main.py                   # Ponto de entrada
+├── requirements.txt          # Dependências
+└── README.md                 # Este arquivo
+```
+
+## 🔨 Gerando Executável
+
+Para criar um executável standalone (.exe):
+
+```bash
+python build_exe.py
+```
+
+O executável será gerado em `dist/MusicPlayer.exe` (~22 MB).
+
+### Características do Executável
+- ✅ Arquivo único (não precisa instalar)
+- ✅ Sem janela de console
+- ✅ Ícone personalizado
+- ✅ Todas as dependências incluídas
+- ✅ Pronto para distribuição
+
+## 💾 Armazenamento de Dados
+
+O player salva seus dados em:
+```
+C:\Users\{seu-usuario}\.music_player\
+├── playlists.json       # Playlists salvas
+└── shuffle_history.json # Histórico do modo aleatório
+```
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Python 3.11**: Linguagem principal
+- **tkinter**: Interface gráfica
+- **Pygame**: Engine de reprodução de áudio
+- **Mutagen**: Leitura de metadados (duração, artista, etc.)
+- **PyWin32**: Integração com Windows para teclas de mídia
+- **PyInstaller**: Geração de executável
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+1. Fazer um Fork do projeto
+2. Criar uma branch para sua feature (`git checkout -b feature/NovaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/NovaFeature`)
+5. Abrir um Pull Request
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 🐛 Problemas Conhecidos
+
+- O suporte a teclas de mídia é específico para Windows
+- Alguns formatos de áudio podem não ser suportados dependendo dos codecs instalados
+
+## 📧 Contato
+
+Dúvidas ou sugestões? Abra uma [issue](https://github.com/seu-usuario/music-player/issues)!
+
+---
+
+<div align="center">
+
+Feito com ❤️ e Python
+
+</div>
