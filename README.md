@@ -77,32 +77,6 @@ Interface elegante com tema dark, controles intuitivos e modo mini player.
 - Python 3.11 ou superior
 - Windows (para suporte completo a teclas de mídia)
 
-### Passo a Passo
-
-1. **Clone o repositório**
-```bash
-git clone https://github.com/seu-usuario/music-player.git
-cd music-player
-```
-
-2. **Instale as dependências**
-```bash
-pip install -r requirements.txt
-```
-
-3. **Execute o player**
-```bash
-python main.py
-```
-
-## 📦 Dependências
-
-```
-pygame==2.5.2      # Engine de áudio
-pyinstaller==6.3.0 # Geração de executável
-mutagen==1.47.0    # Leitura de metadados de áudio
-pywin32==306       # Suporte a teclas de mídia Windows
-```
 
 ## 🎮 Uso
 
@@ -170,32 +144,6 @@ music-player/
 ├── main.py                   # Ponto de entrada
 ├── requirements.txt          # Dependências
 └── README.md                 # Este arquivo
-```
-
-## 🔨 Gerando Executável
-
-Para criar um executável standalone (.exe):
-
-```bash
-python build_exe.py
-```
-
-O executável será gerado em `dist/MusicPlayer.exe` (~22 MB).
-
-### Características do Executável
-- ✅ Arquivo único (não precisa instalar)
-- ✅ Sem janela de console
-- ✅ Ícone personalizado
-- ✅ Todas as dependências incluídas
-- ✅ Pronto para distribuição
-
-## 💾 Armazenamento de Dados
-
-O player salva seus dados em:
-```
-C:\Users\{seu-usuario}\.music_player\
-├── playlists.json       # Playlists salvas
-└── shuffle_history.json # Histórico do modo aleatório
 ```
 
 ## 🛠️ Tecnologias Utilizadas
