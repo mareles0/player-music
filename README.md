@@ -154,29 +154,75 @@ music-player/
 - **Mutagen**: Leitura de metadados (duração, artista, etc.)
 - **PyWin32**: Integração com Windows para teclas de mídia
 - **PyInstaller**: Geração de executável
+- **Pillow**: Processamento de imagens/ícones
+
+## 📚 Documentação Adicional
+
+- [📱 MOBILE.md](MOBILE.md) - Por que não há versão APK/iOS e alternativas
+- [📋 CHANGELOG.md](CHANGELOG.md) - Histórico de versões e mudanças
+- [🤝 CONTRIBUTING.md](CONTRIBUTING.md) - Guia para contribuidores
+- [🔒 SECURITY.md](SECURITY.md) - Política de segurança
+- [🧪 tests/README.md](tests/README.md) - Como executar testes
+
+## 🎯 Roadmap
+
+### v1.1.0 (Próxima Versão)
+- [ ] Sistema de favoritos ⭐
+- [ ] Histórico de reprodução 📜
+- [ ] Busca avançada 🔍
+- [ ] Tema claro/escuro 🎨
+- [ ] Equalizer de áudio 🎛️
+
+### Futuro
+- [ ] Importação de playlists M3U
+- [ ] Suporte a mais formatos (AIFF, APE)
+- [ ] Lyrics integrados
+- [ ] Estatísticas de reprodução
+- [ ] Mini visualizador de ondas
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Sinta-se à vontade para:
-
-1. Fazer um Fork do projeto
-2. Criar uma branch para sua feature (`git checkout -b feature/NovaFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/NovaFeature`)
-5. Abrir um Pull Request
+Contribuições são bem-vindas! Por favor, leia [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre:
+- Como reportar bugs
+- Como sugerir funcionalidades
+- Padrões de código
+- Processo de Pull Request
 
 ## 📝 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ## 🐛 Problemas Conhecidos
 
 - O suporte a teclas de mídia é específico para Windows
 - Alguns formatos de áudio podem não ser suportados dependendo dos codecs instalados
+- Performance pode variar com playlists muito grandes (>10.000 músicas)
+
+## 📞 Suporte
+
+- 🐛 **Bugs**: Abra uma [Issue](https://github.com/mareles0/player-music/issues)
+- 💡 **Ideias**: Use [Discussions](https://github.com/mareles0/player-music/discussions)
+- 🔒 **Segurança**: Veja [SECURITY.md](SECURITY.md)
+
+## ⭐ Agradecimentos
+
+- Comunidade Pygame pelo excelente framework
+- Todos os contribuidores que ajudaram a melhorar o projeto
+- Usuários que reportam bugs e sugerem melhorias
+
+---
+
+<div align="center">
+
+**Feito com ❤️ usando Python**
+
+[⬆ Voltar ao topo](#-music-player---estilo-spotify)
+
+</div>
 
 ## 📧 Contato
 
-Dúvidas ou sugestões? Abra uma [issue](https://github.com/seu-usuario/music-player/issues)!
+Dúvidas ou sugestões? Abra uma [issue](https://github.com/mareles0/music-player/issues)!
 
 ---
 
