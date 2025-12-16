@@ -1,5 +1,6 @@
 """
-Player de Música com Interface Gráfica
+Player de Música com Interface Gráfica - Versão Melhorada
+Melhorias: Animações suaves, barra de progresso clicável, tooltips, melhor UX
 """
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
@@ -13,14 +14,43 @@ from utils.media_keys import MediaKeyListener
 from utils.config_manager import ConfigManager
 from utils.history_manager import HistoryManager
 
+class ToolTip:
+    """Tooltip personalizado para mostrar dicas ao passar o mouse"""
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        self.widget.bind("<Enter>", self.show)
+        self.widget.bind("<Leave>", self.hide)
+    
+    def show(self, event=None):
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 25
+        
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+        
+        label = tk.Label(self.tooltip, text=self.text, 
+                        background="#1DB954", foreground="white",
+                        relief=tk.SOLID, borderwidth=1,
+                        font=("Arial", 9), padx=8, pady=4)
+        label.pack()
+    
+    def hide(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
 class MusicPlayer:
-    """Classe principal do reprodutor de música"""
+    """Classe principal do reprodutor de música - Versão Melhorada"""
     
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Music Player - Estilo Spotify")
         self.root.geometry("900x600")
-        self.root.minsize(750, 500)  # Tamanho mínimo maior para evitar cortes
+        self.root.minsize(750, 500)
         self.root.configure(bg="#121212")
         
         # Define ícone do aplicativo
@@ -39,17 +69,21 @@ class MusicPlayer:
         self.current_index = -1
         self.is_playing = False
         self.is_paused = False
-        self.volume = self.config_manager.get('volume', 70) / 100  # Carrega volume salvo
+        self.volume = self.config_manager.get('volume', 70) / 100
         self.current_folder = self.config_manager.get('last_folder')
         self.current_playlist = self.config_manager.get('last_playlist')
         self.is_mini_mode = False
         self.shuffle_mode = self.config_manager.get('shuffle_enabled', False)
-        self.shuffle_history = []  # Músicas já tocadas no shuffle
-        self.shuffle_queue = []    # Fila de músicas para tocar
-        self.song_length = 0       # Duração total da música em segundos
-        self.song_position = 0     # Posição atual da música
+        self.repeat_mode = self.config_manager.get('repeat_mode', 'off')  # off, one, all
+        self.shuffle_history = []
+        self.shuffle_queue = []
+        self.song_length = 0
+        self.song_position = 0
         self.current_theme = self.config_manager.get('theme', 'dark')
-        self.search_query = ''  # Query de busca atual
+        self.search_query = ''
+        self.is_muted = False
+        self.volume_before_mute = self.volume
+        self.is_seeking = False  # Para controle da barra de progresso
         
         # Inicializa listener de teclas de mídia
         self.media_listener = MediaKeyListener(
@@ -85,7 +119,7 @@ class MusicPlayer:
         self.main_container = tk.Frame(self.root, bg="#121212")
         self.main_container.pack(fill=tk.BOTH, expand=True)
         
-        # Container horizontal: Playlists à esquerda, conteúdo principal à direita
+        # Container horizontal
         self.content_wrapper = tk.Frame(self.main_container, bg="#121212")
         self.content_wrapper.pack(fill=tk.BOTH, expand=True)
         
@@ -114,6 +148,7 @@ class MusicPlayer:
                                      borderwidth=0, padx=8, pady=4,
                                      cursor="hand2")
         add_playlist_btn.pack(side=tk.LEFT, padx=5)
+        ToolTip(add_playlist_btn, "Adicionar nova playlist")
         
         remove_playlist_btn = tk.Button(playlist_btn_frame, text="🗑", 
                                         font=("Arial", 9),
@@ -122,6 +157,7 @@ class MusicPlayer:
                                         borderwidth=0, padx=8, pady=4,
                                         cursor="hand2")
         remove_playlist_btn.pack(side=tk.LEFT, padx=5)
+        ToolTip(remove_playlist_btn, "Remover playlist selecionada")
         
         # Lista de playlists
         playlist_scroll_frame = tk.Frame(self.playlist_panel, bg="#000000")
@@ -174,6 +210,7 @@ class MusicPlayer:
                                    borderwidth=0, padx=10, pady=5,
                                    cursor="hand2")
         self.theme_btn.pack(side=tk.RIGHT, padx=5)
+        ToolTip(self.theme_btn, "Alternar tema")
         
         # Botão de histórico
         history_btn = tk.Button(top_buttons_frame, text="📜", 
@@ -183,6 +220,7 @@ class MusicPlayer:
                                borderwidth=0, padx=10, pady=5,
                                cursor="hand2")
         history_btn.pack(side=tk.RIGHT, padx=5)
+        ToolTip(history_btn, "Ver histórico")
         
         self.mini_btn = tk.Button(top_buttons_frame, text="📐", 
                                   font=("Arial", 14),
@@ -191,6 +229,7 @@ class MusicPlayer:
                                   borderwidth=0, padx=10, pady=5,
                                   cursor="hand2")
         self.mini_btn.pack(side=tk.RIGHT, padx=5)
+        ToolTip(self.mini_btn, "Modo mini player")
         
         load_btn = tk.Button(top_buttons_frame, text="📁", 
                             font=("Arial", 14),
@@ -199,8 +238,9 @@ class MusicPlayer:
                             borderwidth=0, padx=10, pady=5,
                             cursor="hand2")
         load_btn.pack(side=tk.RIGHT, padx=5)
+        ToolTip(load_btn, "Carregar pasta de músicas")
         
-        # Frame central - Lista de músicas (responsivo)
+        # Frame central - Lista de músicas
         self.list_container = tk.Frame(self.main_content, bg="#181818", 
                                        relief=tk.FLAT, borderwidth=2)
         self.list_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True, 
@@ -241,6 +281,7 @@ class MusicPlayer:
                            borderwidth=0, padx=8, pady=2,
                            cursor="hand2")
         fav_btn.pack(side=tk.LEFT, padx=5)
+        ToolTip(fav_btn, "Ver favoritos")
         
         # Scrollbar e Listbox
         list_scroll_frame = tk.Frame(self.list_container, bg="#181818")
@@ -263,9 +304,9 @@ class MusicPlayer:
         scrollbar.config(command=self.music_listbox.yview)
         
         self.music_listbox.bind('<Double-Button-1>', self.on_song_double_click)
-        self.music_listbox.bind('<Button-3>', self.show_song_context_menu)  # Botão direito
+        self.music_listbox.bind('<Button-3>', self.show_song_context_menu)
         
-        # Container de informação da música atual (card estilo Spotify)
+        # Container de informação da música atual
         self.info_container = tk.Frame(self.main_content, bg="#282828", 
                                        relief=tk.FLAT, borderwidth=2)
         self.info_container.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 10))
@@ -299,7 +340,21 @@ class MusicPlayer:
                                    bg="#282828", fg="#B3B3B3")
         self.time_label.pack(anchor=tk.W)
         
-        # Container de controles (fixo na parte inferior)
+        # NOVA: Barra de progresso interativa
+        progress_frame = tk.Frame(info_text_frame, bg="#282828")
+        progress_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        self.progress_canvas = tk.Canvas(progress_frame, height=6, bg="#404040", 
+                                        highlightthickness=0, cursor="hand2")
+        self.progress_canvas.pack(fill=tk.X)
+        self.progress_bar = self.progress_canvas.create_rectangle(0, 0, 0, 6, 
+                                                                   fill="#1DB954", outline="")
+        
+        # Bind para clique na barra de progresso
+        self.progress_canvas.bind('<Button-1>', self.seek_music)
+        self.progress_canvas.bind('<B1-Motion>', self.seek_music)
+        
+        # Container de controles
         self.control_container = tk.Frame(self.main_content, bg="#181818", 
                                           relief=tk.FLAT, borderwidth=2)
         self.control_container.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=(0, 15))
@@ -311,6 +366,17 @@ class MusicPlayer:
         btn_frame = tk.Frame(control_inner, bg="#181818")
         btn_frame.pack(pady=10)
         
+        # Botão de repeat
+        self.repeat_btn = tk.Button(btn_frame, text="🔁", 
+                                    font=("Arial", 18),
+                                    bg="#282828", fg="white",
+                                    command=self.toggle_repeat,
+                                    borderwidth=0, 
+                                    width=3, height=1,
+                                    cursor="hand2")
+        self.repeat_btn.pack(side=tk.LEFT, padx=8)
+        ToolTip(self.repeat_btn, "Modo de repetição")
+        
         self.prev_btn = tk.Button(btn_frame, text="⏮", 
                                   font=("Arial", 18),
                                   bg="#282828", fg="white",
@@ -319,6 +385,7 @@ class MusicPlayer:
                                   width=3, height=1,
                                   cursor="hand2")
         self.prev_btn.pack(side=tk.LEFT, padx=8)
+        ToolTip(self.prev_btn, "Música anterior")
         
         self.play_btn = tk.Button(btn_frame, text="▶", 
                                   font=("Arial", 24),
@@ -328,6 +395,7 @@ class MusicPlayer:
                                   width=3, height=1,
                                   cursor="hand2")
         self.play_btn.pack(side=tk.LEFT, padx=8)
+        ToolTip(self.play_btn, "Play/Pause (Espaço)")
         
         self.next_btn = tk.Button(btn_frame, text="⏭", 
                                   font=("Arial", 18),
@@ -337,15 +405,18 @@ class MusicPlayer:
                                   width=3, height=1,
                                   cursor="hand2")
         self.next_btn.pack(side=tk.LEFT, padx=8)
+        ToolTip(self.next_btn, "Próxima música")
         
         self.shuffle_btn = tk.Button(btn_frame, text="🔀", 
                                      font=("Arial", 18),
-                                     bg="#282828", fg="white",
+                                     bg="#1DB954" if self.shuffle_mode else "#282828", 
+                                     fg="white",
                                      command=self.toggle_shuffle,
                                      borderwidth=0, 
                                      width=3, height=1,
                                      cursor="hand2")
         self.shuffle_btn.pack(side=tk.LEFT, padx=8)
+        ToolTip(self.shuffle_btn, "Modo aleatório")
         
         # Controle de volume estilizado
         volume_frame = tk.Frame(control_inner, bg="#181818")
@@ -367,9 +438,59 @@ class MusicPlayer:
                                       sliderrelief=tk.FLAT,
                                       length=250,
                                       width=15,
-                                      cursor="hand2")
-        self.volume_slider.set(70)
+                                      cursor="hand2",
+                                      showvalue=0)  # Esconde valor numérico
+        self.volume_slider.set(int(self.volume * 100))
         self.volume_slider.pack(side=tk.LEFT)
+        ToolTip(self.volume_slider, "Volume (↑↓ ou M para mute)")
+        
+        # Label do volume
+        self.volume_label = tk.Label(volume_frame, text=f"{int(self.volume * 100)}%", 
+                                     font=("Arial", 10),
+                                     bg="#181818", fg="#B3B3B3")
+        self.volume_label.pack(side=tk.LEFT, padx=10)
+    
+    def seek_music(self, event):
+        """Permite buscar posição na música clicando na barra"""
+        if not self.is_playing or self.song_length == 0:
+            return
+        
+        # Calcula posição clicada
+        width = self.progress_canvas.winfo_width()
+        click_x = event.x
+        percentage = max(0, min(1, click_x / width))
+        new_position = percentage * self.song_length
+        
+        try:
+            # Para e reinicia música na nova posição
+            pygame.mixer.music.stop()
+            music = self.music_loader.get_music_by_index(self.current_index)
+            if music:
+                pygame.mixer.music.load(music['path'])
+                pygame.mixer.music.play(start=new_position)
+                self.song_position = new_position
+                self.is_playing = True
+                self.is_paused = False
+        except Exception as e:
+            print(f"Erro ao buscar posição: {e}")
+    
+    def toggle_repeat(self):
+        """Alterna entre modos de repetição: off -> one -> all -> off"""
+        modes = ['off', 'one', 'all']
+        current_idx = modes.index(self.repeat_mode)
+        self.repeat_mode = modes[(current_idx + 1) % len(modes)]
+        self.config_manager.set('repeat_mode', self.repeat_mode)
+        
+        # Atualiza visual do botão
+        if self.repeat_mode == 'off':
+            self.repeat_btn.config(bg="#282828", text="🔁")
+        elif self.repeat_mode == 'one':
+            self.repeat_btn.config(bg="#1DB954", text="🔂")
+        else:  # all
+            self.repeat_btn.config(bg="#1DB954", text="🔁")
+        
+        mode_text = {"off": "desativado", "one": "repetir uma", "all": "repetir todas"}
+        messagebox.showinfo("Modo de Repetição", f"Repetição: {mode_text[self.repeat_mode]}")
     
     def load_folder(self, folder_path=None):
         """Carrega músicas de uma pasta selecionada"""
@@ -381,16 +502,18 @@ class MusicPlayer:
             self.config_manager.set('last_folder', folder_path)
             music_list = self.music_loader.load_folder(folder_path)
             
-            # Atualiza a listbox
+            # Atualiza a listbox com animação suave
             self.music_listbox.delete(0, tk.END)
-            for music in music_list:
-                self.music_listbox.insert(tk.END, music['name'])
+            for i, music in enumerate(music_list):
+                # Adiciona número da música para melhor visualização
+                display_name = f"{i+1:03d}. {music['name']}"
+                self.music_listbox.insert(tk.END, display_name)
             
             if music_list:
-                # Pergunta se deseja salvar como playlist (apenas se foi seleção manual)
+                # Pergunta se deseja salvar como playlist
                 if folder_path and not self.config_manager.get('last_folder') == folder_path:
                     save = messagebox.askyesno("Salvar Playlist", 
-                                              f"{len(music_list)} música(s) carregada(s)!\n\n"
+                                              f"✅ {len(music_list)} música(s) carregada(s)!\n\n"
                                               "Deseja salvar esta pasta como playlist?")
                     if save:
                         name = simpledialog.askstring("Nome da Playlist", 
@@ -399,10 +522,9 @@ class MusicPlayer:
                         if name:
                             if self.playlist_manager.add_playlist(folder_path, name):
                                 self.load_saved_playlists()
-                                messagebox.showinfo("Sucesso", "Playlist salva com sucesso!")
+                                messagebox.showinfo("Sucesso", "✅ Playlist salva!")
             else:
-                messagebox.showwarning("Aviso", 
-                                      "Nenhuma música encontrada na pasta!")
+                messagebox.showwarning("Aviso", "⚠️ Nenhuma música encontrada na pasta!")
     
     def load_saved_playlists(self):
         """Carrega playlists salvas na listbox"""
@@ -435,10 +557,11 @@ class MusicPlayer:
             
             # Atualiza a listbox
             self.music_listbox.delete(0, tk.END)
-            for music in music_list:
-                self.music_listbox.insert(tk.END, music['name'])
+            for i, music in enumerate(music_list):
+                display_name = f"{i+1:03d}. {music['name']}"
+                self.music_listbox.insert(tk.END, display_name)
             
-            # Atualiza seleção visual na playlist
+            # Atualiza título
             playlist_info = self.playlist_manager.get_playlist_by_path(path)
             if playlist_info:
                 self.root.title(f"Music Player - {playlist_info['name']}")
@@ -453,18 +576,16 @@ class MusicPlayer:
             if name:
                 if self.playlist_manager.add_playlist(folder, name):
                     self.load_saved_playlists()
-                    messagebox.showinfo("Sucesso", "Playlist adicionada com sucesso!")
-                    
-                    # Carrega automaticamente a nova playlist
+                    messagebox.showinfo("Sucesso", "✅ Playlist adicionada!")
                     self.load_playlist(folder)
                 else:
-                    messagebox.showwarning("Aviso", "Esta playlist já existe!")
+                    messagebox.showwarning("Aviso", "⚠️ Esta playlist já existe!")
     
     def remove_selected_playlist(self):
         """Remove a playlist selecionada"""
         selection = self.playlist_listbox.curselection()
         if not selection:
-            messagebox.showwarning("Aviso", "Selecione uma playlist para remover!")
+            messagebox.showwarning("Aviso", "⚠️ Selecione uma playlist para remover!")
             return
         
         index = selection[0]
@@ -478,738 +599,7 @@ class MusicPlayer:
                 self.playlist_manager.remove_playlist(playlist['path'])
                 self.load_saved_playlists()
                 
-                # Limpa a lista de músicas se era a playlist atual
                 if self.current_playlist == playlist['path']:
                     self.music_listbox.delete(0, tk.END)
                     self.current_playlist = None
                     self.root.title("Music Player - Estilo Spotify")
-    
-    def on_song_double_click(self, event):
-        """Evento de duplo clique em uma música"""
-        selection = self.music_listbox.curselection()
-        if selection:
-            self.current_index = selection[0]
-            self.play_music()
-    
-    def play_music(self):
-        """Reproduz a música atual"""
-        if self.current_index < 0:
-            return
-        
-        music = self.music_loader.get_music_by_index(self.current_index)
-        if music:
-            try:
-                pygame.mixer.music.load(music['path'])
-                pygame.mixer.music.play()
-                self.is_playing = True
-                self.is_paused = False
-                self.play_btn.config(text="⏸")
-                self.current_song_label.config(text=f"♫ {music['name']}")
-                
-                # Adiciona ao histórico
-                self.history_manager.add_entry(music['path'], music['name'])
-                
-                # Obtém duração da música
-                try:
-                    from mutagen import File
-                    audio = File(music['path'])
-                    if audio and audio.info:
-                        self.song_length = int(audio.info.length)
-                    else:
-                        self.song_length = 0
-                except:
-                    # Se mutagen não estiver disponível, usa estimativa
-                    self.song_length = 0
-                
-                self.song_position = 0
-                
-                # Destaca a música na lista
-                self.music_listbox.selection_clear(0, tk.END)
-                self.music_listbox.selection_set(self.current_index)
-                self.music_listbox.see(self.current_index)
-                
-                # Inicia o update do tempo
-                self.update_time()
-            except Exception as e:
-                messagebox.showerror("Erro", f"Erro ao reproduzir música: {e}")
-    
-    def play_pause(self):
-        """Alterna entre play e pause"""
-        # Se há música carregada e tocando
-        if self.is_playing and not self.is_paused:
-            # Pausa
-            pygame.mixer.music.pause()
-            self.is_paused = True
-            self.play_btn.config(text="▶")
-        elif self.is_playing and self.is_paused:
-            # Despausa
-            pygame.mixer.music.unpause()
-            self.is_paused = False
-            self.play_btn.config(text="⏸")
-        elif self.current_index >= 0:
-            # Inicia música atual
-            self.play_music()
-        elif self.music_listbox.size() > 0:
-            # Se nenhuma música está selecionada, toca a primeira
-            self.current_index = 0
-            self.play_music()
-    
-    def next_song(self):
-        """Toca a próxima música"""
-        if self.music_listbox.size() == 0:
-            return
-        
-        if self.shuffle_mode:
-            self.play_next_shuffle()
-        else:
-            self.current_index = (self.current_index + 1) % self.music_listbox.size()
-            self.play_music()
-    
-    def previous_song(self):
-        """Toca a música anterior"""
-        if self.music_listbox.size() == 0:
-            return
-        
-        self.current_index = (self.current_index - 1) % self.music_listbox.size()
-        self.play_music()
-    
-    def change_volume(self, val):
-        """Altera o volume"""
-        self.volume = float(val) / 100
-        pygame.mixer.music.set_volume(self.volume)
-        # Atualiza estado de mute
-        if self.volume > 0:
-            self.is_muted = False
-        # Salva volume nas configurações
-        try:
-            self.config_manager.set('volume', int(val))
-        except:
-            pass
-        # Salva volume
-        self.config_manager.set('volume', int(val))
-    
-    def format_time(self, seconds):
-        """Formata segundos em MM:SS"""
-        if seconds < 0:
-            seconds = 0
-        mins = int(seconds // 60)
-        secs = int(seconds % 60)
-        return f"{mins:02d}:{secs:02d}"
-    
-    def update_time(self):
-        """Atualiza o tempo de reprodução"""
-        if self.is_playing and not self.is_paused:
-            # Verifica se a música terminou
-            if not pygame.mixer.music.get_busy():
-                self.next_song()
-                return
-            
-            # Atualiza posição atual
-            try:
-                # pygame.mixer.music.get_pos() retorna milissegundos desde o início
-                pos_ms = pygame.mixer.music.get_pos()
-                if pos_ms > 0:
-                    self.song_position = pos_ms / 1000.0
-                else:
-                    self.song_position += 1
-                
-                # Atualiza label de tempo
-                current_time = self.format_time(self.song_position)
-                if self.song_length > 0:
-                    total_time = self.format_time(self.song_length)
-                    self.time_label.config(text=f"{current_time} / {total_time}")
-                else:
-                    self.time_label.config(text=f"{current_time} / --:--")
-            except:
-                pass
-        
-        self.root.after(1000, self.update_time)
-    
-    def toggle_mini_mode(self):
-        """Alterna entre modo completo e mini player"""
-        self.is_mini_mode = not self.is_mini_mode
-        
-        if self.is_mini_mode:
-            # Modo mini - esconde lista e playlists, reduz tamanho
-            self.list_container.pack_forget()
-            self.playlist_panel.pack_forget()
-            self.root.geometry("500x320")
-            self.root.minsize(450, 320)
-            self.mini_btn.config(text="📊")
-        else:
-            # Modo completo - restaura layout original
-            # Re-empacota painel de playlists
-            self.playlist_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(15, 5), pady=15)
-            self.playlist_panel.pack_propagate(False)
-            
-            # Garante que main_content está empacotado
-            self.main_content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            
-            # Re-empacota lista de músicas no lugar correto
-            # Primeiro garante a ordem: top_frame, list_container, info_container, control_container
-            self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=10)
-            
-            self.list_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True, 
-                                    padx=15, pady=10)
-            
-            self.info_container.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 10))
-            
-            self.control_container.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=(0, 15))
-            
-            # Restaura tamanho e configurações
-            self.root.geometry("900x600")
-            self.root.minsize(750, 500)  # Restaura limite mínimo adequado
-            self.mini_btn.config(text="📐")
-            
-            # Força atualização do layout
-            self.root.update_idletasks()
-    
-    def on_resize(self, event):
-        """Ajusta elementos quando a janela é redimensionada"""
-        # Evento de redimensionamento - permite responsividade
-        pass
-    
-    def toggle_shuffle(self):
-        """Alterna modo shuffle on/off"""
-        self.shuffle_mode = not self.shuffle_mode
-        
-        if self.shuffle_mode:
-            # Ativa shuffle
-            self.shuffle_btn.config(bg="#1DB954")
-            self.initialize_shuffle()
-            messagebox.showinfo("Shuffle Ativado", 
-                              "Modo aleatório ativado!\n\n"
-                              "As músicas serão tocadas em ordem aleatória.\n"
-                              "O histórico é salvo para não repetir.")
-        else:
-            # Desativa shuffle
-            self.shuffle_btn.config(bg="#282828")
-            self.shuffle_history.clear()
-            self.shuffle_queue.clear()
-    
-    def initialize_shuffle(self):
-        """Inicializa o modo shuffle criando fila aleatória"""
-        total_songs = self.music_listbox.size()
-        if total_songs == 0:
-            return
-        
-        # Cria lista de todos os índices
-        all_indices = list(range(total_songs))
-        
-        # Remove a música atual da lista se houver
-        if self.current_index >= 0 and self.current_index in all_indices:
-            all_indices.remove(self.current_index)
-        
-        # Embaralha
-        random.shuffle(all_indices)
-        
-        # Define como fila
-        self.shuffle_queue = all_indices
-        self.shuffle_history = []
-        
-        # Adiciona música atual ao histórico se houver
-        if self.current_index >= 0:
-            self.shuffle_history.append(self.current_index)
-    
-    def play_next_shuffle(self):
-        """Toca a próxima música no modo shuffle"""
-        # Se a fila acabou, todas as músicas foram tocadas
-        if len(self.shuffle_queue) == 0:
-            # Reinicia o shuffle excluindo o histórico
-            messagebox.showinfo("Shuffle", 
-                              "Todas as músicas foram tocadas!\n\n"
-                              "Reiniciando playlist em modo aleatório.")
-            self.initialize_shuffle()
-            
-            if len(self.shuffle_queue) == 0:
-                return
-        
-        # Pega próxima música da fila
-        self.current_index = self.shuffle_queue.pop(0)
-        self.shuffle_history.append(self.current_index)
-        self.play_music()
-        
-        # Salva histórico
-        self.save_shuffle_history()
-    
-    def save_shuffle_history(self):
-        """Salva histórico de músicas tocadas no shuffle"""
-        if not self.current_playlist:
-            return
-        
-        try:
-            import json
-            history_file = Path.home() / ".music_player" / "shuffle_history.json"
-            history_file.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Carrega histórico existente
-            history_data = {}
-            if history_file.exists():
-                with open(history_file, 'r', encoding='utf-8') as f:
-                    history_data = json.load(f)
-            
-            # Salva histórico da playlist atual
-            history_data[self.current_playlist] = {
-                'history': self.shuffle_history[-50:],  # Últimas 50
-                'queue': self.shuffle_queue
-            }
-            
-            with open(history_file, 'w', encoding='utf-8') as f:
-                json.dump(history_data, f, indent=2)
-        except Exception as e:
-            print(f"Erro ao salvar histórico shuffle: {e}")
-    
-    def load_shuffle_history(self):
-        """Carrega histórico de shuffle salvo"""
-        if not self.current_playlist:
-            return
-        
-        try:
-            import json
-            history_file = Path.home() / ".music_player" / "shuffle_history.json"
-            if history_file.exists():
-                with open(history_file, 'r', encoding='utf-8') as f:
-                    history_data = json.load(f)
-                
-                if self.current_playlist in history_data:
-                    data = history_data[self.current_playlist]
-                    self.shuffle_history = data.get('history', [])
-                    self.shuffle_queue = data.get('queue', [])
-        except Exception as e:
-            print(f"Erro ao carregar histórico shuffle: {e}")
-    
-    def set_app_icon(self):
-        """Define o ícone da janela do aplicativo"""
-        try:
-            # Tenta carregar o arquivo .ico
-            icon_path = Path(__file__).parent.parent / 'assets' / 'spotify.ico'
-            if icon_path.exists():
-                self.root.iconbitmap(str(icon_path))
-            else:
-                # Se não houver .ico, tenta usar PNG
-                icon_png = Path(__file__).parent.parent / 'assets' / 'spotify.png'
-                if icon_png.exists():
-                    from PIL import Image, ImageTk
-                    img = Image.open(str(icon_png))
-                    photo = ImageTk.PhotoImage(img)
-                    self.root.iconphoto(True, photo)
-                    # Guarda referência para não ser coletado pelo garbage collector
-                    self.root._icon_photo = photo
-        except Exception as e:
-            print(f"Aviso: Não foi possível carregar o ícone: {e}")
-    
-    def setup_media_keys(self):
-        """Configura atalhos de teclado para controle de mídia"""
-        # Teclas de espaço para play/pause
-        self.root.bind('<space>', lambda e: self.play_pause())
-        
-        # Teclas de seta para navegação
-        self.root.bind('<Left>', lambda e: self.previous_song())
-        self.root.bind('<Right>', lambda e: self.next_song())
-        
-        # Teclas de volume
-        self.root.bind('<Up>', lambda e: self.increase_volume())
-        self.root.bind('<Down>', lambda e: self.decrease_volume())
-        
-        # Tecla M para mute
-        self.root.bind('m', lambda e: self.toggle_mute())
-        self.root.bind('M', lambda e: self.toggle_mute())
-        
-        # Atalhos adicionais
-        self.root.bind('<Control-Right>', lambda e: self.next_song())
-        self.root.bind('<Control-Left>', lambda e: self.previous_song())
-        self.root.bind('<Control-space>', lambda e: self.play_pause())
-        
-        # Variável para rastrear mute
-        self.is_muted = False
-        self.volume_before_mute = self.volume
-    
-    def toggle_mute(self):
-        """Alterna entre mudo e volume normal"""
-        if self.is_muted:
-            # Restaura volume
-            pygame.mixer.music.set_volume(self.volume_before_mute)
-            self.volume_slider.set(int(self.volume_before_mute * 100))
-            self.is_muted = False
-        else:
-            # Salva volume atual e muta
-            self.volume_before_mute = self.volume
-            pygame.mixer.music.set_volume(0)
-            self.volume_slider.set(0)
-            self.is_muted = True
-    
-    def increase_volume(self):
-        """Aumenta o volume em 5%"""
-        current = self.volume_slider.get()
-        new_volume = min(100, current + 5)
-        self.volume_slider.set(new_volume)
-        self.change_volume(new_volume)
-    
-    def decrease_volume(self):
-        """Diminui o volume em 5%"""
-        current = self.volume_slider.get()
-        new_volume = max(0, current - 5)
-        self.volume_slider.set(new_volume)
-        self.change_volume(new_volume)
-    
-    def on_close(self):
-        """Evento ao fechar a janela"""
-        # Salva configurações antes de fechar
-        self.save_current_state()
-        
-        # Para o listener de teclas de mídia
-        if hasattr(self, 'media_listener'):
-            self.media_listener.stop()
-        
-        pygame.mixer.music.stop()
-        pygame.mixer.quit()
-        self.root.destroy()
-    
-    def save_current_state(self):
-        """Salva o estado atual nas configurações"""
-        try:
-            self.config_manager.set('volume', int(self.volume * 100))
-            self.config_manager.set('last_folder', self.current_folder)
-            self.config_manager.set('last_playlist', self.current_playlist)
-            self.config_manager.set('shuffle_enabled', self.shuffle_mode)
-            self.config_manager.set('theme', self.current_theme)
-            
-            # Salva tamanho da janela
-            geometry = self.root.geometry().split('+')[0]  # Pega apenas WIDTHxHEIGHT
-            width, height = map(int, geometry.split('x'))
-            self.config_manager.set('window_width', width)
-            self.config_manager.set('window_height', height)
-        except Exception as e:
-            print(f"Erro ao salvar configurações: {e}")
-    
-    def toggle_theme(self):
-        """Alterna entre tema escuro e claro"""
-        self.current_theme = 'light' if self.current_theme == 'dark' else 'dark'
-        self.config_manager.set('theme', self.current_theme)
-        self.apply_theme()
-    
-    def apply_theme(self, show_message=True):
-        """Aplica o tema atual"""
-        if self.current_theme == 'dark':
-            # Tema escuro (atual)
-            bg_main = "#121212"
-            bg_secondary = "#181818"
-            bg_tertiary = "#282828"
-            fg_main = "white"
-            fg_secondary = "#B3B3B3"
-            accent = "#1DB954"
-            list_select_bg = "#1DB954"
-            list_select_fg = "white"
-            self.theme_btn.config(text="🌙", bg="#282828", fg="white")
-        else:
-            # Tema claro
-            bg_main = "#F8F9FA"  # Cinza muito claro
-            bg_secondary = "#FFFFFF"  # Branco puro
-            bg_tertiary = "#E9ECEF"  # Cinza claro
-            fg_main = "#212529"  # Preto suave
-            fg_secondary = "#6C757D"  # Cinza médio
-            accent = "#1DB954"
-            list_select_bg = "#1DB954"
-            list_select_fg = "white"
-            self.theme_btn.config(text="☀️", bg="#E9ECEF", fg="#212529")
-        
-        # Aplica cores ao root e containers principais
-        self.root.configure(bg=bg_main)
-        self.main_container.configure(bg=bg_main)
-        self.content_wrapper.configure(bg=bg_main)
-        self.main_content.configure(bg=bg_main)
-        
-        # Painel de playlists
-        self.playlist_panel.configure(bg=bg_secondary)
-        
-        # Frames principais
-        self.top_frame.configure(bg=bg_main)
-        self.list_container.configure(bg=bg_secondary)
-        self.info_container.configure(bg=bg_tertiary)
-        self.control_container.configure(bg=bg_secondary)
-        
-        # Atualiza listboxes
-        self.music_listbox.configure(bg=bg_tertiary, fg=fg_main, 
-                                     selectbackground=list_select_bg,
-                                     selectforeground=list_select_fg)
-        self.playlist_listbox.configure(bg=bg_tertiary, fg=fg_main,
-                                       selectbackground=list_select_bg,
-                                       selectforeground=list_select_fg)
-        
-        # Atualiza labels e outros elementos visíveis
-        try:
-            # Atualiza cores de todos os widgets filhos recursivamente
-            self.update_widget_colors(self.root, bg_main, bg_secondary, bg_tertiary, fg_main, fg_secondary)
-        except Exception as e:
-            print(f"Erro ao atualizar cores: {e}")
-        
-        if show_message:
-            messagebox.showinfo("Tema Alterado", f"Tema {'claro' if self.current_theme == 'light' else 'escuro'} aplicado!")
-    
-    def update_widget_colors(self, widget, bg_main, bg_secondary, bg_tertiary, fg_main, fg_secondary):
-        """Atualiza cores de widgets recursivamente"""
-        try:
-            widget_type = widget.winfo_class()
-            
-            # Labels
-            if widget_type == 'Label':
-                current_bg = widget.cget('bg')
-                if current_bg in ['#121212', '#F8F9FA']:
-                    widget.configure(bg=bg_main, fg=fg_main)
-                elif current_bg in ['#181818', '#FFFFFF']:
-                    widget.configure(bg=bg_secondary, fg=fg_main)
-                elif current_bg in ['#282828', '#E9ECEF']:
-                    widget.configure(bg=bg_tertiary, fg=fg_main)
-            
-            # Frames
-            elif widget_type == 'Frame':
-                current_bg = widget.cget('bg')
-                if current_bg in ['#121212', '#F8F9FA']:
-                    widget.configure(bg=bg_main)
-                elif current_bg in ['#181818', '#FFFFFF']:
-                    widget.configure(bg=bg_secondary)
-                elif current_bg in ['#282828', '#E9ECEF']:
-                    widget.configure(bg=bg_tertiary)
-            
-            # Entry (campo de busca)
-            elif widget_type == 'Entry':
-                if self.current_theme == 'dark':
-                    widget.configure(bg="#181818", fg="white", insertbackground="white")
-                else:
-                    widget.configure(bg="#FFFFFF", fg="#212529", insertbackground="#212529")
-            
-            # Buttons
-            elif widget_type == 'Button':
-                current_bg = widget.cget('bg')
-                # Mantém botões com cores especiais (verde, vermelho)
-                if current_bg not in ['#1DB954', '#FF4444', '#FFD700']:
-                    if current_bg in ['#282828']:
-                        widget.configure(bg=bg_tertiary, fg=fg_main)
-            
-            # Recursivamente atualiza filhos
-            for child in widget.winfo_children():
-                self.update_widget_colors(child, bg_main, bg_secondary, bg_tertiary, fg_main, fg_secondary)
-        except:
-            pass
-    
-    def on_search(self, event):
-        """Filtra músicas conforme busca"""
-        query = self.search_entry.get().lower()
-        
-        if query == "🔍 buscar..." or not query:
-            # Mostra todas as músicas
-            self.refresh_music_list()
-            return
-        
-        # Filtra músicas
-        self.music_listbox.delete(0, tk.END)
-        all_music = self.music_loader.get_all_music()
-        
-        for i, music in enumerate(all_music):
-            name = music['name'].lower()
-            if query in name:
-                display_name = f"{i+1}. {music['name']}"
-                self.music_listbox.insert(tk.END, display_name)
-    
-    def refresh_music_list(self):
-        """Atualiza a lista de músicas"""
-        self.music_listbox.delete(0, tk.END)
-        all_music = self.music_loader.get_all_music()
-        for i, music in enumerate(all_music):
-            display_name = f"{i+1}. {music['name']}"
-            self.music_listbox.insert(tk.END, display_name)
-    
-    def show_song_context_menu(self, event):
-        """Mostra menu de contexto na música (botão direito)"""
-        try:
-            index = self.music_listbox.nearest(event.y)
-            self.music_listbox.selection_clear(0, tk.END)
-            self.music_listbox.selection_set(index)
-            
-            music = self.music_loader.get_music_by_index(index)
-            if not music:
-                return
-            
-            # Cria menu
-            context_menu = tk.Menu(self.root, tearoff=0, bg="#282828", fg="white")
-            
-            # Verifica se é favorita
-            is_fav = self.config_manager.is_favorite(music['path'])
-            fav_text = "⭐ Remover dos Favoritos" if is_fav else "⭐ Adicionar aos Favoritos"
-            
-            context_menu.add_command(label=fav_text, 
-                                    command=lambda: self.toggle_favorite(music['path']))
-            context_menu.add_separator()
-            context_menu.add_command(label="▶ Tocar", 
-                                    command=lambda: self.play_song_at_index(index))
-            
-            context_menu.post(event.x_root, event.y_root)
-        except Exception as e:
-            print(f"Erro no menu de contexto: {e}")
-    
-    def toggle_favorite(self, music_path):
-        """Adiciona ou remove música dos favoritos"""
-        if self.config_manager.is_favorite(music_path):
-            self.config_manager.remove_favorite(music_path)
-            messagebox.showinfo("Favoritos", "Música removida dos favoritos!")
-        else:
-            self.config_manager.add_favorite(music_path)
-            messagebox.showinfo("Favoritos", "Música adicionada aos favoritos!")
-    
-    def play_song_at_index(self, index):
-        """Toca música no índice específico"""
-        self.current_index = index
-        self.play_music()
-    
-    def show_favorites(self):
-        """Mostra apenas músicas favoritas"""
-        favorites = self.config_manager.get('favorites', [])
-        
-        if not favorites:
-            messagebox.showinfo("Favoritos", "Você ainda não tem músicas favoritas!\n\nClique com botão direito em uma música para adicionar.")
-            return
-        
-        # Cria janela de favoritos
-        fav_window = tk.Toplevel(self.root)
-        fav_window.title("⭐ Músicas Favoritas")
-        fav_window.geometry("500x400")
-        fav_window.configure(bg="#121212")
-        
-        title = tk.Label(fav_window, text="⭐ Suas Músicas Favoritas", 
-                        font=("Arial", 16, "bold"),
-                        bg="#121212", fg="#FFD700")
-        title.pack(pady=10)
-        
-        # Lista de favoritos
-        scroll_frame = tk.Frame(fav_window, bg="#181818")
-        scroll_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        scrollbar = tk.Scrollbar(scroll_frame, bg="#282828")
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        fav_listbox = tk.Listbox(scroll_frame, 
-                                yscrollcommand=scrollbar.set,
-                                bg="#282828", fg="white",
-                                font=("Arial", 11),
-                                selectbackground="#FFD700",
-                                selectforeground="black")
-        fav_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.config(command=fav_listbox.yview)
-        
-        # Preenche lista
-        for fav_path in favorites:
-            fav_name = Path(fav_path).stem
-            fav_listbox.insert(tk.END, f"⭐ {fav_name}")
-        
-        def play_favorite(event):
-            selection = fav_listbox.curselection()
-            if selection:
-                idx = selection[0]
-                fav_path = favorites[idx]
-                # Encontra índice na lista principal
-                all_music = self.music_loader.get_all_music()
-                for i, music in enumerate(all_music):
-                    if music['path'] == fav_path:
-                        self.current_index = i
-                        self.play_music()
-                        fav_window.destroy()
-                        break
-        
-        fav_listbox.bind('<Double-Button-1>', play_favorite)
-    
-    def show_history(self):
-        """Mostra histórico de reprodução"""
-        history = self.history_manager.get_history(limit=50)
-        
-        if not history:
-            messagebox.showinfo("Histórico", "Seu histórico está vazio!\n\nToque algumas músicas para ver o histórico.")
-            return
-        
-        # Cria janela de histórico
-        hist_window = tk.Toplevel(self.root)
-        hist_window.title("📜 Histórico de Reprodução")
-        hist_window.geometry("600x450")
-        hist_window.configure(bg="#121212")
-        
-        title = tk.Label(hist_window, text="📜 Histórico de Reprodução", 
-                        font=("Arial", 16, "bold"),
-                        bg="#121212", fg="#1DB954")
-        title.pack(pady=10)
-        
-        # Botão limpar histórico
-        clear_btn = tk.Button(hist_window, text="🗑 Limpar Histórico",
-                             bg="#FF4444", fg="white",
-                             font=("Arial", 10, "bold"),
-                             command=lambda: self.clear_history(hist_window),
-                             cursor="hand2")
-        clear_btn.pack(pady=5)
-        
-        # Lista de histórico
-        scroll_frame = tk.Frame(hist_window, bg="#181818")
-        scroll_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        scrollbar = tk.Scrollbar(scroll_frame, bg="#282828")
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        hist_listbox = tk.Listbox(scroll_frame, 
-                                  yscrollcommand=scrollbar.set,
-                                  bg="#282828", fg="white",
-                                  font=("Arial", 10),
-                                  selectbackground="#1DB954",
-                                  selectforeground="white")
-        hist_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.config(command=hist_listbox.yview)
-        
-        # Preenche lista
-        from datetime import datetime
-        for entry in history:
-            try:
-                timestamp = datetime.fromisoformat(entry['timestamp'])
-                time_str = timestamp.strftime("%d/%m/%Y %H:%M")
-            except:
-                time_str = "Data desconhecida"
-            
-            hist_listbox.insert(tk.END, f"🎵 {entry['name']} - {time_str}")
-        
-        def play_from_history(event):
-            selection = hist_listbox.curselection()
-            if selection:
-                idx = selection[0]
-                hist_path = history[idx]['path']
-                # Encontra índice na lista principal
-                all_music = self.music_loader.get_all_music()
-                for i, music in enumerate(all_music):
-                    if music['path'] == hist_path:
-                        self.current_index = i
-                        self.play_music()
-                        hist_window.destroy()
-                        break
-        
-        hist_listbox.bind('<Double-Button-1>', play_from_history)
-    
-    def clear_history(self, window):
-        """Limpa o histórico"""
-        if messagebox.askyesno("Confirmar", "Deseja realmente limpar todo o histórico?"):
-            self.history_manager.clear_history()
-            messagebox.showinfo("Histórico", "Histórico limpo com sucesso!")
-            window.destroy()
-    
-    def run(self):
-        """Inicia a aplicação"""
-        # Carrega geometria salva
-        width = self.config_manager.get('window_width', 900)
-        height = self.config_manager.get('window_height', 600)
-        self.root.geometry(f"{width}x{height}")
-        
-        # Aplica tema salvo (sem mostrar mensagem)
-        self.apply_theme(show_message=False)
-        
-        # Carrega última pasta se houver
-        if self.current_folder and Path(self.current_folder).exists():
-            try:
-                self.load_folder(self.current_folder)
-            except:
-                pass  # Ignora erro se não conseguir carregar
-        
-        self.root.mainloop()
-
